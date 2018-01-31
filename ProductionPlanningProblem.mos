@@ -1,0 +1,61 @@
+model "Production Problem"
+uses "mmxprs"; !gain access to the Xpress-Optimizer solver
+
+!ARRAY and VARIABLE declarations
+declarations
+Months = 1..12
+Month_Name: array(Months) of string
+Demand1: array(Months) of real ! Monthly Demand of first Product from Oct to Sept 
+Demand2: array(Months) of real ! Monthly Demand of second Product from Oct to Sept 
+INV1: array(1..12) of real !Inventory of Product 1 at the end of each Month from Oct to Sept
+INV2: array(1..12) of real !Inventory of Product 1 at the end of each Month from Oct to Sept
+Cost1: array(Months) of real !Product 1 cost from October to September
+Cost2: array(Months) of real !Month-wise Cost of 2nd Product from Oct to Sept 
+ProdLimit: array(Months) of real !Maximum Limit for Production from Oct to Sept
+
+total_area = 150000 ! Inventory Space available in cubic feet
+area_Cost = 0.2 !Inventory Carrying Cost per cubic feet
+
+prod1: array(Months) of mpvar !DECISION VARIABLE: Monthly Production of Product 1 from Oct to Sept
+prod2: array(Months) of mpvar !DECISION VARIABLE: Monthly Production of Product 2 from Oct to Sept
+ini_inventory1,ini_inventory2:mpvar !DECISION VARIABLE: Initial Inventory for Product 1 & Product 2
+
+
+end-declarations
+
+!Values of declared Arrays
+Demand1 :: [100000,100000,100000,10000,10000,10000,10000,30000,30000,30000,30000,30000]
+Demand2 :: [50000,50000,50000,50000,50000,15000,15000,15000,15000,15000,15000,15000]
+Cost1 :: [5,5,5,5,5,5,5,5,5,4.5,4.5,4.5]
+Cost2 :: [8.5,8.5,8.5,8.5,8.5,8.5,8.5,8.5,8.5,7,7,7]
+ProdLimit :: [150000,150000,150000,120000,120000,120000,120000,120000,120000,120000,120000,120000]
+Month_Name :: ["Oct","Nov","Dec","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep"]
+
+!CONSTRAINTS
+
+!Constraint for total production capacity of Product 1 & Product 2
+forall(n in Months) prod1(n)+prod2(n) <= ProdLimit(n)
+
+!Calculation of Inventory for Product 1 & Product 2
+forall(n in Months) INV1(n)=ini_inventory1+sum(i in 1..n) (prod1(i)-Demand1(i))
+forall(n in Months) INV2(n)=ini_inventory2+sum(i in 1..n) (prod2(i)-Demand2(i))
+
+!Constraints for Inventory Space
+ini_inventory1*2+ini_inventory2*4<=total_area
+!Constraint for Months from Oct to Sep
+forall(n in Months) ini_inventory1+ini_inventory2+sum(i in 1..n) (prod1(i)-Demand1(i))+sum(i in 1..n) (prod2(i)-Demand2(i))<=total_area
+
+!OBJECTIVE FUNCTION
+
+TotalCost:= sum(n in Months) (prod1(n)*Cost1(n)+prod2(n)*Cost2(n)+area_Cost*(2*INV1(n)+INV2(n)))
+
+minimize(TotalCost)
+
+
+writeln("Total Cost: ", getobjval/1000," thousands")
+writeln("Initial Inventory: Product 1=",getsol(ini_inventory1),"  Product 2=",getsol(ini_inventory2))
+writeln("Production Month      Product 1      Product 2")
+forall(n in Months)writeln("        ",Month_Name(n),"           ", getsol(prod1(n)),"       ",getsol(prod2(n)),"       ",INV1(n),"       ",INV2(n))
+
+
+end-model
