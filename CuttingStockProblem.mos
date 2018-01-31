@@ -1,0 +1,44 @@
+model "Cutting Stock Problem"
+uses "mmxprs"; !gain access to the Xpress-Optimizer solver
+
+declarations
+revolutions,depth,length,dim:mpvar !DECISION VARIABLES
+ttime:real
+end-declarations
+
+30*revolutions + 4500*depth <= 150000		! Constraint for compression stress 
+
+40*revolutions + 5000*depth + 5000*length <= 100000		! Constraint for side stress 
+
+200 + 0.5*revolutions + 150*(depth + length) <= 800		! Constraint for Temperature Constraint
+
+! Constraints to find minimum of depth & length
+dim <= depth
+dim <= length
+
+! Constraint for Rotation Speed
+revolutions >= 600
+revolutions <= 800
+
+! Non Negativity Constraint
+depth >= 0
+length >= 0
+dim >= 0
+revolutions >= 0
+
+! Solving Problem
+maximize(dim)
+
+! Finding Time
+ttime := 36/(getsol(depth)*getsol(length))
+
+! Printing Solution
+
+writeln("Total Time     : ", ttime, " minutes")
+writeln("Speed x1       : ", getsol(revolutions), " revolutions/min")
+writeln("Depth Feed x2  : ", getsol(depth), " inches/min")
+writeln("Length Feed x3 : ", getsol(length), " inches/min")
+
+writeln("Minimum of depth & length (Objective Value): ", getobjval, " inches/min")	
+
+end-model
